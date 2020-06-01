@@ -59,8 +59,8 @@ parseExpression = (flip buildExpressionParser) parseTerm $ [
     [ Infix (reservedOp lexer "*" >> return Multiplication )AssocLeft, Infix (reservedOp lexer "div" >> return Division )AssocLeft, Infix (reservedOp lexer "mod" >> return Modulus )AssocLeft ],
     [ Infix (reservedOp lexer "+" >> return Addition )AssocLeft, Infix (reservedOp lexer "-" >> return Subtraction )AssocLeft ]]
 
-parseFunctionInvocation :: Parser Expression
-parseFunctionInvocation = do
+parseFunctionCall :: Parser Expression
+parseFunctionCall = do
     ident <- identifier lexer
     expr <- parens lexer parseExpression
     return $ FunctionInvocation ident expr
@@ -114,7 +114,7 @@ parseTerm = parens lexer parseExpression
             <|> parseNumber 
             <|> try parseConditional 
             <|> try parseLoop 
-            <|> try parseFunctionInvocation
+            <|> try parseFunctionCall
             <|> (identifier lexer >>= return . Identifier)
 
 parsePrint :: Parser Statement
@@ -148,8 +148,8 @@ parseFunctionDefinition = do
     reservedOp lexer ";"
     return $ FunctionDefinition ident (FunctionBody argname expr)
 
-parseInput :: Parser Statement
-parseInput = do 
+parseLanguage :: Parser Statement
+parseLanguage = do 
     whiteSpace lexer
     s <- ( parsePrint <|> parseAssignment <|> parseFunctionDefinition <|> parseWhiteSpace)
     eof
@@ -267,7 +267,7 @@ interpretLanguage s =
                           Left e' -> liftIO $ putStrLn $ "error: " ++ e'
                           Right _ -> return ()
     where
-        ret = parse parseInput "" s
+        ret = parse parseLanguage "" s
 
 language :: FFLanguage () 
 language =  liftIO (readFile "t.txt") >>= (mapM_ interpretLanguage) . lines
